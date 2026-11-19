@@ -1,0 +1,6 @@
+target/
+.git/
+*.md
+src/test/
+.idea/
+*.iml

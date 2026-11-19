@@ -1,0 +1,17 @@
+# Secrets and local config — never commit
+.env
+*.env.local
+
+# Build artifacts
+banking_system/target/
+
+# Node
+banking-ui/node_modules/
+banking-ui/dist/
+
+# Custom hosts file (local DNS workaround)
+custom_hosts
+
+# IDE
+.idea/
+*.iml
