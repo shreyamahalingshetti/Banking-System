@@ -1,5 +1,6 @@
 package com.bank.banking_system.dto;
 
+import com.bank.banking_system.entity.AccountType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,5 +23,6 @@ public class AdminAccountResponse {
     private String customerName;
     private BigDecimal balance;
     private String status;
+    private AccountType accountType;
     private LocalDateTime createdAt;
 }

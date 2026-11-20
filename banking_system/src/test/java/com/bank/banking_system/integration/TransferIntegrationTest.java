@@ -79,14 +79,14 @@ class TransferIntegrationTest {
         MvcResult acc1Res = mockMvc.perform(post("/api/accounts")
                         .header("Authorization", "Bearer " + token1)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"customerId\":%d}", cust1Id)))
+                        .content(String.format("{\"customerId\":%d,\"accountType\":\"SAVINGS\"}", cust1Id)))
                 .andExpect(status().isCreated()).andReturn();
         String accNum1 = extractRegex(acc1Res.getResponse().getContentAsString(), "\"accountNumber\"\\s*:\\s*\"([^\"]+)\"");
 
         MvcResult acc2Res = mockMvc.perform(post("/api/accounts")
                         .header("Authorization", "Bearer " + token2)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"customerId\":%d}", cust2Id)))
+                        .content(String.format("{\"customerId\":%d,\"accountType\":\"SAVINGS\"}", cust2Id)))
                 .andExpect(status().isCreated()).andReturn();
         String accNum2 = extractRegex(acc2Res.getResponse().getContentAsString(), "\"accountNumber\"\\s*:\\s*\"([^\"]+)\"");
 

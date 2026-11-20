@@ -19,12 +19,15 @@ export const getAdminCustomers = async ({ page = 0, size = 20 } = {}) => {
 };
 
 /**
- * List accounts with pagination and optional status filter.
+ * List accounts with pagination and optional status & type filters.
  */
-export const getAdminAccounts = async ({ page = 0, size = 20, status } = {}) => {
+export const getAdminAccounts = async ({ page = 0, size = 20, status, type } = {}) => {
   const params = { page, size };
   if (status && status !== 'ALL') {
     params.status = status;
+  }
+  if (type && type !== 'ALL') {
+    params.type = type;
   }
   const response = await api.get('/api/admin/accounts', { params });
   return response.data;

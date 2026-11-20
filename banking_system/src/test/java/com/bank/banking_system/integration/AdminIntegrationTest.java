@@ -85,7 +85,7 @@ class AdminIntegrationTest {
         MvcResult accRes = mockMvc.perform(post("/api/accounts")
                         .header("Authorization", "Bearer " + adminToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"customerId\":1}"))
+                        .content("{\"customerId\":1,\"accountType\":\"SAVINGS\"}"))
                 .andExpect(status().isCreated()).andReturn();
         String accountNumber = extractRegex(accRes.getResponse().getContentAsString(), "\"accountNumber\"\\s*:\\s*\"([^\"]+)\"");
 

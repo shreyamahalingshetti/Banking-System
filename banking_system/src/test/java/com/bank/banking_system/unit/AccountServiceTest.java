@@ -2,7 +2,9 @@ package com.bank.banking_system.unit;
 
 import com.bank.banking_system.dto.AccountResponse;
 import com.bank.banking_system.entity.Account;
+import com.bank.banking_system.entity.AccountType;
 import com.bank.banking_system.entity.Customer;
+import com.bank.banking_system.exception.InvalidOperationException;
 import com.bank.banking_system.exception.ResourceNotFoundException;
 import com.bank.banking_system.repository.AccountRepository;
 import com.bank.banking_system.repository.CustomerRepository;
@@ -67,6 +69,7 @@ class AccountServiceTest {
         assertTrue(response.getAccountNumber().matches("^\\d{12}$"), "Account number must contain only digits");
         assertEquals(new BigDecimal("0.00"), response.getBalance());
         assertEquals("ACTIVE", response.getStatus());
+        assertEquals(AccountType.SAVINGS, response.getAccountType());
     }
 
     @Test
@@ -92,7 +95,6 @@ class AccountServiceTest {
 
         assertNotNull(response);
         assertEquals(12, response.getAccountNumber().length());
-        // Verify findByAccountNumber was called at least twice due to collision
         verify(accountRepository, atLeast(2)).findByAccountNumber(anyString());
     }
 
@@ -102,6 +104,40 @@ class AccountServiceTest {
         when(customerRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(ResourceNotFoundException.class, () -> accountService.createAccount(999L));
+        verify(accountRepository, never()).save(any(Account.class));
+    }
+
+    @Test
+    @DisplayName("Creating accounts with each AccountType stores and returns the correct type")
+    void createAccount_withEachType_succeeds() {
+        Customer customer = Customer.builder().id(1L).email("alice@test.com").build();
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(accountRepository.findByAccountNumber(anyString())).thenReturn(Optional.empty());
+
+        when(accountRepository.save(any(Account.class))).thenAnswer(invocation -> {
+            Account acc = invocation.getArgument(0);
+            acc.setId(100L);
+            acc.setCreatedAt(LocalDateTime.now());
+            return acc;
+        });
+
+        for (AccountType type : AccountType.values()) {
+            AccountResponse response = accountService.createAccount(1L, type);
+            assertNotNull(response);
+            assertEquals(type, response.getAccountType(), "Response must reflect chosen account type: " + type);
+        }
+    }
+
+    @Test
+    @DisplayName("Creating 6th account for customer throws InvalidOperationException (max 5 accounts)")
+    void createAccount_limitExceeded_throwsInvalidOperationException() {
+        Customer customer = Customer.builder().id(1L).email("alice@test.com").build();
+        when(customerRepository.findById(1L)).thenReturn(Optional.of(customer));
+        when(accountRepository.countByCustomerId(1L)).thenReturn(5L);
+
+        InvalidOperationException ex = assertThrows(InvalidOperationException.class,
+                () -> accountService.createAccount(1L, AccountType.SAVINGS));
+        assertTrue(ex.getMessage().contains("Customer cannot have more than 5 accounts"));
         verify(accountRepository, never()).save(any(Account.class));
     }
 }

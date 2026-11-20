@@ -3,7 +3,9 @@ package com.bank.banking_system.service;
 import com.bank.banking_system.config.SecurityUtils;
 import com.bank.banking_system.dto.AccountResponse;
 import com.bank.banking_system.entity.Account;
+import com.bank.banking_system.entity.AccountType;
 import com.bank.banking_system.entity.Customer;
+import com.bank.banking_system.exception.InvalidOperationException;
 import com.bank.banking_system.exception.ResourceNotFoundException;
 import com.bank.banking_system.repository.AccountRepository;
 import com.bank.banking_system.repository.CustomerRepository;
@@ -27,6 +29,11 @@ public class AccountService {
 
     @Transactional
     public AccountResponse createAccount(Long customerId) {
+        return createAccount(customerId, AccountType.SAVINGS);
+    }
+
+    @Transactional
+    public AccountResponse createAccount(Long customerId, AccountType accountType) {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new ResourceNotFoundException("Customer not found with id: " + customerId));
 
@@ -37,11 +44,18 @@ public class AccountService {
             }
         }
 
+        long existingCount = accountRepository.countByCustomerId(customer.getId());
+        if (existingCount >= 5) {
+            throw new InvalidOperationException("Customer cannot have more than 5 accounts");
+        }
+
+        AccountType effectiveType = (accountType != null) ? accountType : AccountType.SAVINGS;
         String accountNumber = generateUniqueAccountNumber();
 
         Account account = Account.builder()
                 .accountNumber(accountNumber)
                 .customer(customer)
+                .accountType(effectiveType)
                 .balance(BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP))
                 .status("ACTIVE")
                 .build();
@@ -54,7 +68,8 @@ public class AccountService {
         }
 
         auditService.log("ACCOUNT_CREATED", performedBy, "ACCOUNT",
-                savedAccount.getAccountNumber(), "Account created for customer " + customer.getId());
+                savedAccount.getAccountNumber(),
+                "Account created for customer " + customer.getId() + " (" + savedAccount.getAccountType() + ")");
 
         return mapToResponse(savedAccount);
     }
@@ -122,6 +137,7 @@ public class AccountService {
                 .customerId(account.getCustomer().getId())
                 .balance(account.getBalance())
                 .status(account.getStatus())
+                .accountType(account.getAccountType())
                 .createdAt(account.getCreatedAt())
                 .build();
     }

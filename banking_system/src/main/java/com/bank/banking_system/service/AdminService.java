@@ -8,6 +8,7 @@ import com.bank.banking_system.dto.AuditLogResponse;
 import com.bank.banking_system.dto.DashboardSummaryResponse;
 import com.bank.banking_system.dto.PagedResponse;
 import com.bank.banking_system.entity.Account;
+import com.bank.banking_system.entity.AccountType;
 import com.bank.banking_system.entity.AuditLog;
 import com.bank.banking_system.entity.Transaction;
 import com.bank.banking_system.entity.TransactionStatus;
@@ -94,13 +95,14 @@ public class AdminService {
 
     @Transactional(readOnly = true)
     public PagedResponse<AdminAccountResponse> listAccounts(int page, int size, String status) {
+        return listAccounts(page, size, status, null);
+    }
+
+    @Transactional(readOnly = true)
+    public PagedResponse<AdminAccountResponse> listAccounts(int page, int size, String status, AccountType type) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<Account> accountPage;
-        if (status != null && !status.trim().isEmpty()) {
-            accountPage = accountRepository.findByStatusWithCustomer(status.trim().toUpperCase(), pageable);
-        } else {
-            accountPage = accountRepository.findAllWithCustomer(pageable);
-        }
+        String trimmedStatus = (status != null && !status.trim().isEmpty()) ? status.trim().toUpperCase() : null;
+        Page<Account> accountPage = accountRepository.findWithFilters(trimmedStatus, type, pageable);
 
         return PagedResponse.<AdminAccountResponse>builder()
                 .content(accountPage.getContent().stream().map(this::mapToAdminAccountResponse).toList())
@@ -178,6 +180,7 @@ public class AdminService {
                 .customerName(account.getCustomer() != null ? account.getCustomer().getFullName() : null)
                 .balance(account.getBalance())
                 .status(account.getStatus())
+                .accountType(account.getAccountType())
                 .createdAt(account.getCreatedAt())
                 .build();
     }

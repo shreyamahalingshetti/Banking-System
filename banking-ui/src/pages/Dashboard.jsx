@@ -3,10 +3,60 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Button from '../components/Button';
 import Alert from '../components/Alert';
+import Modal from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
 import { getMyAccounts, createAccount } from '../api/accounts';
 import { useAuth } from '../context/AuthContext';
-import { formatCurrency, formatAccountNumber, formatDateTime } from '../utils/formatters';
+import {
+  formatCurrency,
+  formatAccountNumber,
+  formatDateTime,
+  formatAccountType,
+  getAccountTypeBadgeClass,
+} from '../utils/formatters';
+
+const ACCOUNT_TYPES = [
+  {
+    id: 'SAVINGS',
+    name: 'Savings Account',
+    description: 'Everyday banking with secure liquidity and compound interest on balances.',
+    icon: (
+      <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'CURRENT',
+    name: 'Current Account',
+    description: 'High-volume commercial account suited for frequent transactions and business flows.',
+    icon: (
+      <svg className="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+      </svg>
+    ),
+  },
+  {
+    id: 'SALARY',
+    name: 'Salary Account',
+    description: 'Zero-balance payroll account customized for corporate disbursements and salary credits.',
+    icon: (
+      <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'FIXED_DEPOSIT',
+    name: 'Fixed Deposit Account',
+    description: 'Guaranteed term deposit offering high yield for locked long-term capital preservation.',
+    icon: (
+      <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+    ),
+  },
+];
 
 export const Dashboard = () => {
   const { user } = useAuth();
@@ -15,6 +65,10 @@ export const Dashboard = () => {
   const [creating, setCreating] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  // Modal State for Choosing Account Type
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedAccountType, setSelectedAccountType] = useState('SAVINGS');
 
   const fetchAccounts = useCallback(async () => {
     try {
@@ -38,18 +92,30 @@ export const Dashboard = () => {
     fetchAccounts();
   }, [fetchAccounts]);
 
-  const handleCreateAccount = async () => {
+  const handleOpenCreateModal = () => {
+    setSelectedAccountType('SAVINGS');
+    setErrorMessage('');
+    setSuccessMessage('');
+    setIsModalOpen(true);
+  };
+
+  const handleConfirmCreate = async () => {
     setCreating(true);
     setErrorMessage('');
     setSuccessMessage('');
 
     try {
-      const newAccount = await createAccount();
-      // Update list without full page reload
+      const newAccount = await createAccount(selectedAccountType);
+      // Close modal on success
+      setIsModalOpen(false);
+      // Update list dynamically without full page reload
       setAccounts((prev) => [newAccount, ...prev]);
-      setSuccessMessage(`Account ${formatAccountNumber(newAccount.accountNumber)} created successfully!`);
+      setSuccessMessage(
+        `${formatAccountType(newAccount.accountType || selectedAccountType)} (${formatAccountNumber(newAccount.accountNumber)}) created successfully!`
+      );
     } catch (err) {
       console.error('Failed to create account:', err);
+      setIsModalOpen(false);
       if (err.response?.data?.message) {
         setErrorMessage(err.response.data.message);
       } else {
@@ -79,9 +145,8 @@ export const Dashboard = () => {
           <div>
             <Button
               variant="primary"
-              onClick={handleCreateAccount}
-              loading={creating}
-              disabled={creating || loading}
+              onClick={handleOpenCreateModal}
+              disabled={loading || creating}
               className="w-full sm:w-auto shadow-sm"
             >
               <svg
@@ -162,12 +227,11 @@ export const Dashboard = () => {
               You don't have any accounts yet
             </h3>
             <p className="text-sm text-slate-500 mb-6">
-              Create your first one to begin receiving deposits and executing instant transfers.
+              Create your first account to begin receiving deposits and executing instant transfers.
             </p>
             <Button
               variant="primary"
-              onClick={handleCreateAccount}
-              loading={creating}
+              onClick={handleOpenCreateModal}
               disabled={creating}
             >
               Create your first account
@@ -184,8 +248,12 @@ export const Dashboard = () => {
               >
                 <div>
                   <div className="flex items-center justify-between mb-4">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 group-hover:text-indigo-600 transition-colors">
-                      Savings Account
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${getAccountTypeBadgeClass(
+                        acc.accountType || 'SAVINGS'
+                      )}`}
+                    >
+                      {formatAccountType(acc.accountType || 'SAVINGS')}
                     </span>
                     <StatusBadge status={acc.status} />
                   </div>
@@ -216,6 +284,65 @@ export const Dashboard = () => {
           </div>
         )}
       </main>
+
+      {/* Account Type Selection Modal */}
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => !creating && setIsModalOpen(false)}
+        title="Choose Account Type"
+        confirmText="Confirm & Create"
+        cancelText="Cancel"
+        onConfirm={handleConfirmCreate}
+        loading={creating}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-600">
+            Select the type of bank account you want to open. You may hold up to 5 accounts in total.
+          </p>
+
+          <div className="grid grid-cols-1 gap-3">
+            {ACCOUNT_TYPES.map((type) => {
+              const isSelected = selectedAccountType === type.id;
+              return (
+                <div
+                  key={type.id}
+                  onClick={() => setSelectedAccountType(type.id)}
+                  className={`cursor-pointer p-4 rounded-xl border transition-all flex items-start space-x-3.5 ${
+                    isSelected
+                      ? 'border-indigo-600 bg-indigo-50/40 ring-2 ring-indigo-500/20'
+                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50/60'
+                  }`}
+                >
+                  <div className="mt-0.5 shrink-0 p-2 rounded-lg bg-white border border-slate-200 shadow-2xs">
+                    {type.icon}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-bold text-slate-900">
+                        {type.name}
+                      </span>
+                      <span
+                        className={`w-4 h-4 rounded-full border flex items-center justify-center ${
+                          isSelected
+                            ? 'border-indigo-600 bg-indigo-600'
+                            : 'border-slate-300 bg-white'
+                        }`}
+                      >
+                        {isSelected && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-white"></span>
+                        )}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">
+                      {type.description}
+                    </p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

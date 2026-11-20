@@ -7,6 +7,7 @@ import com.bank.banking_system.dto.AuditLogResponse;
 import com.bank.banking_system.dto.DashboardSummaryResponse;
 import com.bank.banking_system.dto.PagedResponse;
 import com.bank.banking_system.dto.UpdateAccountStatusRequest;
+import com.bank.banking_system.entity.AccountType;
 import com.bank.banking_system.entity.TransactionStatus;
 import com.bank.banking_system.entity.TransactionType;
 import com.bank.banking_system.exception.InvalidOperationException;
@@ -48,15 +49,16 @@ public class AdminController {
         return ResponseEntity.ok(adminService.listCustomers(page, effectiveSize));
     }
 
-    @Operation(summary = "List all accounts, optionally filtered by status (ACTIVE, FROZEN, CLOSED)")
+    @Operation(summary = "List all accounts, optionally filtered by status and/or account type")
     @GetMapping("/accounts")
     public ResponseEntity<PagedResponse<AdminAccountResponse>> listAccounts(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) AccountType type) {
         validatePagination(page, size);
         int effectiveSize = Math.min(size, 100);
-        return ResponseEntity.ok(adminService.listAccounts(page, effectiveSize, status));
+        return ResponseEntity.ok(adminService.listAccounts(page, effectiveSize, status, type));
     }
 
     @Operation(summary = "List all transactions with optional filters (status, type, accountNumber)")

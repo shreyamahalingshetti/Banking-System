@@ -15,7 +15,13 @@ import {
   transferFunds,
   getTransactions,
 } from '../api/accounts';
-import { formatCurrency, formatAccountNumber, formatDateTime } from '../utils/formatters';
+import {
+  formatCurrency,
+  formatAccountNumber,
+  formatDateTime,
+  formatAccountType,
+  getAccountTypeBadgeClass,
+} from '../utils/formatters';
 
 export const AccountDetails = () => {
   const { accountNumber } = useParams();
@@ -346,8 +352,12 @@ export const AccountDetails = () => {
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
                 <div>
                   <div className="flex items-center space-x-3 mb-2">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      Savings Account
+                    <span
+                      className={`text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full border ${getAccountTypeBadgeClass(
+                        account.accountType || 'SAVINGS'
+                      )}`}
+                    >
+                      {formatAccountType(account.accountType || 'SAVINGS')}
                     </span>
                     <StatusBadge status={account.status} />
                   </div>

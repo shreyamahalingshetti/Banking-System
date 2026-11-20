@@ -54,7 +54,7 @@ class AccountOwnershipIntegrationTest {
         MvcResult accARes = mockMvc.perform(post("/api/accounts")
                         .header("Authorization", "Bearer " + tokenA)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"customerId\":%d}", customerIdA)))
+                        .content(String.format("{\"customerId\":%d,\"accountType\":\"SAVINGS\"}", customerIdA)))
                 .andExpect(status().isCreated()).andReturn();
         accountA = extractRegex(accARes.getResponse().getContentAsString(), "\"accountNumber\"\\s*:\\s*\"([^\"]+)\"");
 
@@ -76,7 +76,7 @@ class AccountOwnershipIntegrationTest {
         MvcResult accBRes = mockMvc.perform(post("/api/accounts")
                         .header("Authorization", "Bearer " + tokenB)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(String.format("{\"customerId\":%d}", customerIdB)))
+                        .content(String.format("{\"customerId\":%d,\"accountType\":\"SAVINGS\"}", customerIdB)))
                 .andExpect(status().isCreated()).andReturn();
         accountB = extractRegex(accBRes.getResponse().getContentAsString(), "\"accountNumber\"\\s*:\\s*\"([^\"]+)\"");
 

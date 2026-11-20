@@ -1,5 +1,6 @@
 package com.bank.banking_system.dto;
 
+import com.bank.banking_system.entity.AccountType;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +15,8 @@ import lombok.Setter;
 @Builder
 public class CreateAccountRequest {
 
-    @NotNull(message = "Customer ID is required")
     private Long customerId;
+
+    @NotNull(message = "Account type is required")
+    private AccountType accountType;
 }

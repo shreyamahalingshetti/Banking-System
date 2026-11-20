@@ -5,6 +5,7 @@ import com.bank.banking_system.dto.CreateAccountRequest;
 import com.bank.banking_system.service.AccountService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,13 +26,13 @@ public class AccountController {
 
     private final AccountService accountService;
 
-    @Operation(summary = "Create a new bank account for the authenticated customer")
+    @Operation(summary = "Create a new bank account with specified account type")
     @PostMapping
-    public ResponseEntity<AccountResponse> createAccount(@RequestBody(required = false) CreateAccountRequest request) {
+    public ResponseEntity<AccountResponse> createAccount(@Valid @RequestBody CreateAccountRequest request) {
         Long customerId = (request != null && request.getCustomerId() != null)
                 ? request.getCustomerId()
                 : accountService.getCurrentCustomerId();
-        AccountResponse response = accountService.createAccount(customerId);
+        AccountResponse response = accountService.createAccount(customerId, request.getAccountType());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

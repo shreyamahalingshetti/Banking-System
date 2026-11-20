@@ -9,10 +9,14 @@ export const getMyAccounts = async () => {
 };
 
 /**
- * Create a new account for the authenticated customer.
+ * Create a new account with specified accountType for the authenticated customer.
+ * Payload: { accountType: 'SAVINGS' | 'CURRENT' | 'SALARY' | 'FIXED_DEPOSIT', customerId }
  */
-export const createAccount = async (customerId = null) => {
-  const body = customerId ? { customerId } : {};
+export const createAccount = async (accountType = 'SAVINGS', customerId = null) => {
+  const body = {
+    accountType,
+    ...(customerId ? { customerId } : {}),
+  };
   const response = await api.post('/api/accounts', body);
   return response.data;
 };

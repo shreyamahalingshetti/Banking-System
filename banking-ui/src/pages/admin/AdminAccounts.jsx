@@ -6,7 +6,13 @@ import Alert from '../../components/Alert';
 import Modal from '../../components/Modal';
 import StatusBadge from '../../components/StatusBadge';
 import { getAdminAccounts, updateAccountStatus } from '../../api/admin';
-import { formatCurrency, formatAccountNumber, formatDateTime } from '../../utils/formatters';
+import {
+  formatCurrency,
+  formatAccountNumber,
+  formatDateTime,
+  formatAccountType,
+  getAccountTypeBadgeClass,
+} from '../../utils/formatters';
 
 export const AdminAccounts = () => {
   const [accounts, setAccounts] = useState([]);
@@ -15,6 +21,7 @@ export const AdminAccounts = () => {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [statusFilter, setStatusFilter] = useState('ALL');
+  const [typeFilter, setTypeFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -32,7 +39,12 @@ export const AdminAccounts = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await getAdminAccounts({ page, size, status: statusFilter });
+      const data = await getAdminAccounts({
+        page,
+        size,
+        status: statusFilter,
+        type: typeFilter,
+      });
       setAccounts(data.content || []);
       setTotalPages(data.totalPages || 0);
       setTotalElements(data.totalElements || 0);
@@ -42,7 +54,7 @@ export const AdminAccounts = () => {
     } finally {
       setLoading(false);
     }
-  }, [page, size, statusFilter]);
+  }, [page, size, statusFilter, typeFilter]);
 
   useEffect(() => {
     fetchAccounts();
@@ -50,7 +62,6 @@ export const AdminAccounts = () => {
 
   const openStatusModal = (account) => {
     setSelectedAccount(account);
-    // Default to next logical status
     setNewStatus(account.status === 'ACTIVE' ? 'FROZEN' : 'ACTIVE');
     setModalOpen(true);
     setErrorMessage('');
@@ -92,6 +103,19 @@ export const AdminAccounts = () => {
       header: 'Customer Name',
       key: 'customerName',
       className: 'text-slate-700 font-medium',
+    },
+    {
+      header: 'Type',
+      key: 'accountType',
+      render: (row) => (
+        <span
+          className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${getAccountTypeBadgeClass(
+            row.accountType || 'SAVINGS'
+          )}`}
+        >
+          {(row.accountType || 'SAVINGS').replace('_', ' ')}
+        </span>
+      ),
     },
     {
       header: 'Balance',
@@ -138,7 +162,7 @@ export const AdminAccounts = () => {
             Account Management
           </h1>
           <p className="text-xs sm:text-sm text-slate-500 mt-1">
-            Manage account statuses, balances, and lifecycle across all customers
+            Manage account types, statuses, balances, and lifecycle across all customers
           </p>
         </div>
 
@@ -152,22 +176,53 @@ export const AdminAccounts = () => {
         </Button>
       </div>
 
-      {/* Status Filter */}
-      <div className="flex flex-wrap items-center gap-3">
-        <span className="text-sm font-medium text-slate-600">Filter by Status:</span>
-        {['ALL', 'ACTIVE', 'FROZEN', 'CLOSED'].map((s) => (
-          <button
-            key={s}
-            onClick={() => { setStatusFilter(s); setPage(0); }}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-              statusFilter === s
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600'
-            }`}
-          >
-            {s === 'ALL' ? 'All Statuses' : s.charAt(0) + s.slice(1).toLowerCase()}
-          </button>
-        ))}
+      {/* Filter Controls Bar */}
+      <div className="bg-white rounded-xl p-4 border border-slate-200 shadow-2xs space-y-3">
+        {/* Status Filter */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 min-w-[70px]">
+            Status:
+          </span>
+          {['ALL', 'ACTIVE', 'FROZEN', 'CLOSED'].map((s) => (
+            <button
+              key={s}
+              onClick={() => {
+                setStatusFilter(s);
+                setPage(0);
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                statusFilter === s
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+              }`}
+            >
+              {s === 'ALL' ? 'All Statuses' : s.charAt(0) + s.slice(1).toLowerCase()}
+            </button>
+          ))}
+        </div>
+
+        {/* Account Type Filter */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 pt-2 border-t border-slate-100">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-400 min-w-[70px]">
+            Type:
+          </span>
+          {['ALL', 'SAVINGS', 'CURRENT', 'SALARY', 'FIXED_DEPOSIT'].map((t) => (
+            <button
+              key={t}
+              onClick={() => {
+                setTypeFilter(t);
+                setPage(0);
+              }}
+              className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                typeFilter === t
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400 hover:text-indigo-600'
+              }`}
+            >
+              {t === 'ALL' ? 'All Types' : t.replace('_', ' ')}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Alerts */}
@@ -188,7 +243,7 @@ export const AdminAccounts = () => {
           error={error}
           onRetry={fetchAccounts}
           emptyMessage="No accounts found"
-          emptySubMessage="No accounts match the current status filter."
+          emptySubMessage="No accounts match the current status and type filters."
         />
         <Pagination
           page={page}
@@ -196,7 +251,10 @@ export const AdminAccounts = () => {
           totalPages={totalPages}
           totalElements={totalElements}
           onPageChange={setPage}
-          onSizeChange={(s) => { setSize(s); setPage(0); }}
+          onSizeChange={(s) => {
+            setSize(s);
+            setPage(0);
+          }}
           pageSizeOptions={[10, 20, 50]}
         />
       </div>
@@ -219,6 +277,16 @@ export const AdminAccounts = () => {
                 <span className="text-slate-500">Account Number:</span>
                 <span className="font-mono font-bold text-slate-800">
                   {formatAccountNumber(selectedAccount.accountNumber)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Account Type:</span>
+                <span
+                  className={`text-[11px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${getAccountTypeBadgeClass(
+                    selectedAccount.accountType || 'SAVINGS'
+                  )}`}
+                >
+                  {(selectedAccount.accountType || 'SAVINGS').replace('_', ' ')}
                 </span>
               </div>
               <div className="flex justify-between">
